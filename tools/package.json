@@ -1,0 +1,12 @@
+{
+  "name": "minecraft-edu-hiragana-tools",
+  "private": true,
+  "description": "Generates the hiragana strings file",
+  "scripts": {
+    "fetch": "sh fetch-source.sh",
+    "convert": "node convert.js"
+  },
+  "dependencies": {
+    "kuromoji": "^0.1.2"
+  }
+}
