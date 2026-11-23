@@ -7,7 +7,7 @@
 
 ## ブロックを みてみよう
 
-ツールボックスの「プレイヤー」「エージェント」「計算」などを ひらいて、
+ツールボックスの「プレイヤー」「エージェント」「計算」「配列」「文字列」などを ひらいて、
 ブロックが ひらがなで ひょうじされているか たしかめてみましょう。
 
 ワークスペースには、ためしの ブロックが おいてあります。
@@ -21,6 +21,9 @@ player.onChat("run", function () {
     blocks.place(STONE_PRESSURE_PLATE, pos(0, 0, 1))
     player.say(hiragana.mod(7, 3))
     player.say(hiragana.max(3, 5))
+    let list = hiragana.createArray(3, 1, 4)
+    player.say(hiragana.getAt(list, 0))
+    player.say(hiragana.join("いし", "の", "ブロック"))
 })
 ```
 
