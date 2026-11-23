@@ -1,12 +1,13 @@
-// Converts the official Japanese MakeCode for Minecraft strings into hiragana.
+// Converts the official Japanese MakeCode for Minecraft strings into hiragana,
+// with spaces between phrases (bunsetsu) for readability.
 //
 //   node convert.js          -> writes ../_locales/ja/minecraft-edu-hiragana-strings.json
-//                               and review.tsv (every kanji word + the reading used)
+//                               review.tsv  (every kanji word + the reading used)
+//                               preview.tsv (original -> converted, for proofreading)
 //
 // Inputs:
 //   source/*-strings.json  official ja translations (see fetch-source.sh)
-//   overrides.json         { "words": { "<kanji word>": "<hiragana>" },
-//                            "keys":  { "<string key>": "<full replacement>" } }
+//   overrides.json         see the $comment in that file
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -18,86 +19,155 @@ const SOURCE_DIR = path.join(__dirname, "source");
 const PACKAGES = ["core", "builder", "shapes", "events", "nether"];
 
 const KANJI = /[々㐀-䶿一-鿿豈-﫿]/;
+const SPACE = /^[\s　]+$/;
 // Parts of a block string that MakeCode parses and must never change:
-// %param, %param=shadowBlockId, $param, and the "|" separators.
-const PROTECTED = /(%[A-Za-z_][A-Za-z0-9_]*(?:=[A-Za-z0-9_.]+)?|\$[A-Za-z_][A-Za-z0-9_]*|\|)/;
+// %param, %param=shadowBlockId, %param(defaultVarName), $param, and the "|" separators.
+// The default variable name inside (...) is converted to hiragana but never spaced.
+const PROTECTED = /(%[A-Za-z_][A-Za-z0-9_]*(?:=[A-Za-z0-9_.]+)?(?:\([^)|%$]*\))?|\$[A-Za-z_][A-Za-z0-9_]*|\|)/;
+const markupOf = s => (s.match(new RegExp(PROTECTED, "g")) || []).map(m => m.replace(/\(.*\)$/, "()")).join(" ");
 
 const kata2hira = s => s.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
 
-const overrides = fs.existsSync(path.join(__dirname, "overrides.json"))
-    ? JSON.parse(fs.readFileSync(path.join(__dirname, "overrides.json"), "utf8"))
-    : {};
+const overrides = JSON.parse(fs.readFileSync(path.join(__dirname, "overrides.json"), "utf8"));
 const wordOverrides = overrides.words || {};
 const keyOverrides = overrides.keys || {};
 const phrases = Object.entries(overrides.phrases || {}).sort((a, b) => b[0].length - a[0].length);
-const applyPhrases = text => phrases.reduce((t, [from, to]) => t.split(from).join(to), text);
+const SPACING = overrides.spacing !== false;
+const SEP = overrides.separator !== undefined ? overrides.separator : " ";
+// Verbs that form one phrase with a preceding サ変 noun: いどう+させる, そうしん+する
+const SURU_VERBS = new Set(["する", "できる", "させる", "される"]);
 
 kuromoji.builder({ dicPath: path.join(__dirname, "node_modules", "kuromoji", "dict") }).build((err, tokenizer) => {
     if (err) throw err;
 
-    const review = new Map(); // surface -> { reading, count, example }
+    const review = new Map(); // kanji word -> { reading, count, example }
     const unresolved = [];
+    const misaligned = [];
 
-    function convertText(text, key) {
-        text = applyPhrases(text);
-        if (!KANJI.test(text)) return text;
-        return tokenizer.tokenize(text).map(t => {
-            const s = t.surface_form;
-            if (!KANJI.test(s)) return s;
-            let reading = wordOverrides[s];
-            if (!reading) {
-                if (!t.reading || t.reading === "*") {
-                    unresolved.push(`${key}\t${s}`);
-                    return s;
+    // Tokenize, then merge tokens that make up a phrase from overrides.json into one token.
+    function analyze(text, key) {
+        const toks = tokenizer.tokenize(text).map(t => ({
+            surface: t.surface_form, reading: t.reading, pos: t.pos, detail: t.pos_detail_1,
+            base: t.basic_form, lastPos: t.pos, lastDetail: t.pos_detail_1, start: t.word_position - 1,
+        }));
+        for (const [from, to] of phrases) {
+            let idx = text.indexOf(from);
+            while (idx >= 0) {
+                const end = idx + from.length;
+                const i = toks.findIndex(t => t.start === idx);
+                let j = i;
+                while (j >= 0 && j < toks.length && toks[j].start + toks[j].surface.length < end) j++;
+                const insideMerged = toks.some(t => t.fixed && t.start <= idx && end <= t.start + t.surface.length);
+                if (insideMerged) {
+                    // already covered by a longer phrase
+                } else if (i < 0 || j >= toks.length || toks[j].start + toks[j].surface.length !== end) {
+                    misaligned.push(`${key}\t${from}`);
+                } else if (!toks[i].fixed) {
+                    const merged = {
+                        ...toks[i], surface: from, hira: to, fixed: true,
+                        lastPos: toks[j].pos, lastDetail: toks[j].detail,
+                    };
+                    toks.splice(i, j - i + 1, merged);
                 }
-                reading = kata2hira(t.reading);
+                idx = text.indexOf(from, end);
             }
-            const r = review.get(s) || { reading, count: 0, example: key };
-            r.count++;
-            review.set(s, r);
-            return reading;
-        }).join("");
+        }
+        return toks;
+    }
+
+    function readingOf(t, key) {
+        if (t.hira !== undefined) return t.hira;
+        if (!KANJI.test(t.surface)) return t.surface;
+        let r = wordOverrides[t.surface];
+        if (!r) {
+            if (!t.reading || t.reading === "*") {
+                unresolved.push(`${key}\t${t.surface}`);
+                return t.surface;
+            }
+            r = kata2hira(t.reading);
+        }
+        const e = review.get(t.surface) || { reading: r, count: 0, example: key };
+        e.count++;
+        review.set(t.surface, e);
+        return r;
+    }
+
+    // Should a space go between prev and cur? (phrase / bunsetsu boundary)
+    function boundary(prev, cur) {
+        if (!prev) return false;
+        if (SPACE.test(prev.surface) || SPACE.test(cur.surface)) return false;
+        if (prev.lastPos === "記号" || cur.pos === "記号") return false;
+        if (prev.lastPos === "接頭詞") return false;
+        if (cur.pos === "助詞" || cur.pos === "助動詞") return false;
+        if (cur.detail === "非自立" || cur.detail === "接尾") return false;
+        if (cur.pos === "動詞" && prev.lastPos === "動詞") return false; // おき+かえる
+        if (cur.pos === "動詞" && SURU_VERBS.has(cur.base) && prev.lastPos === "名詞") return false;
+        if (cur.pos === "名詞" && prev.lastPos === "名詞") {
+            // split compound nouns only between words of 2+ chars where one has kanji
+            const hasKanji = KANJI.test(prev.surface) || KANJI.test(cur.surface);
+            const long = [...prev.surface].length >= 2 && [...cur.surface].length >= 2;
+            const numeric = prev.detail === "数" || cur.detail === "数";
+            return hasKanji && long && !numeric;
+        }
+        return true;
+    }
+
+    function convertText(text, key, spacing) {
+        if (!text) return text;
+        const toks = analyze(text, key);
+        let out = "";
+        toks.forEach((t, i) => {
+            if (spacing && boundary(toks[i - 1], t)) out += SEP;
+            out += readingOf(t, key);
+        });
+        return out;
     }
 
     function convert(value, key) {
-        return value.split(PROTECTED).map((part, i) => (i % 2 ? part : convertText(part, key))).join("");
+        return value.split(PROTECTED).map((part, i) => {
+            if (i % 2 === 0) return convertText(part, key, SPACING);
+            // protected markup: only convert a default variable name, e.g. %list(配列)
+            return part.replace(/\(([^)]*)\)$/, (_, name) => `(${convertText(name, key, false)})`);
+        }).join("");
     }
 
+    const src = {};
+    for (const pkg of PACKAGES)
+        Object.assign(src, JSON.parse(fs.readFileSync(path.join(SOURCE_DIR, `${pkg}-strings.json`), "utf8")));
+
     const out = {};
-    for (const pkg of PACKAGES) {
-        const src = JSON.parse(fs.readFileSync(path.join(SOURCE_DIR, `${pkg}-strings.json`), "utf8"));
-        for (const key of Object.keys(src)) {
-            const value = src[key];
-            if (!value || !KANJI.test(value)) continue; // nothing to change, keep official string
-            out[key] = keyOverrides[key] !== undefined ? keyOverrides[key] : convert(value, key);
-        }
+    for (const key of Object.keys(src).sort()) {
+        const value = src[key];
+        if (keyOverrides[key] !== undefined) { out[key] = keyOverrides[key]; continue; }
+        if (!value || !KANJI.test(value)) continue; // nothing to change, keep the official string
+        out[key] = convert(value, key);
     }
+    for (const [key, value] of Object.entries(overrides.extra || {})) out[key] = value;
 
     // Safety check: the parameter markup must be identical to the original.
     let broken = 0;
-    for (const pkg of PACKAGES) {
-        const src = JSON.parse(fs.readFileSync(path.join(SOURCE_DIR, `${pkg}-strings.json`), "utf8"));
-        for (const key of Object.keys(out)) {
-            if (src[key] === undefined) continue;
-            const markup = s => (s.match(new RegExp(PROTECTED, "g")) || []).join(" ");
-            if (markup(src[key]) !== markup(out[key])) {
-                console.error(`markup changed: ${key}\n  ${src[key]}\n  ${out[key]}`);
-                broken++;
-            }
+    for (const key of Object.keys(out)) {
+        if (src[key] === undefined) continue;
+        if (markupOf(src[key]) !== markupOf(out[key])) {
+            console.error(`markup changed: ${key}\n  ${src[key]}\n  ${out[key]}`);
+            broken++;
         }
+        if (KANJI.test(out[key]) && !keyOverrides[key]) unresolved.push(`${key}\t(kanji left)`);
     }
     if (broken) process.exit(1);
 
-    const sorted = {};
-    Object.keys(out).sort().forEach(k => (sorted[k] = out[k]));
-    fs.writeFileSync(OUT, JSON.stringify(sorted, null, 2) + "\n");
+    fs.writeFileSync(OUT, JSON.stringify(out, null, 2) + "\n");
 
     const rows = [...review.entries()]
         .sort((a, b) => b[1].count - a[1].count || a[0].localeCompare(b[0]))
         .map(([s, r]) => `${s}\t${r.reading}\t${r.count}\t${r.example}`);
     fs.writeFileSync(path.join(__dirname, "review.tsv"), "kanji\treading\tcount\texample_key\n" + rows.join("\n") + "\n");
+    const oneLine = s => s.replace(/\r?\n/g, "\\n");
+    fs.writeFileSync(path.join(__dirname, "preview.tsv"), "key\toriginal\tconverted\n" +
+        Object.keys(out).map(k => `${k}\t${oneLine(src[k] || "")}\t${oneLine(out[k])}`).join("\n") + "\n");
 
-    console.log(`strings written: ${Object.keys(sorted).length}`);
+    console.log(`strings written: ${Object.keys(out).length} (spacing: ${SPACING ? JSON.stringify(SEP) : "off"})`);
     console.log(`distinct kanji words: ${review.size}`);
-    if (unresolved.length) console.log(`no reading found (left as-is):\n  ${unresolved.join("\n  ")}`);
+    if (misaligned.length) console.log(`phrases not on word boundaries (not applied):\n  ${[...new Set(misaligned)].join("\n  ")}`);
+    if (unresolved.length) console.log(`unresolved:\n  ${[...new Set(unresolved)].join("\n  ")}`);
 });

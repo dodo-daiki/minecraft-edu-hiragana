@@ -2,3 +2,4 @@ node_modules/
 built/
 pxt_modules/
 .DS_Store
+preview.tsv

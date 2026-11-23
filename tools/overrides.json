@@ -1,5 +1,7 @@
 {
-  "$comment": "phrases: replaced before morphological analysis (longest first). words: reading for a single analyzed word. keys: full replacement of one string key.",
+  "$comment": "spacing: put spaces between phrases (bunsetsu). separator: the space character. phrases: kanji sequences read as one word (longest first). words: reading for a single analyzed word. keys: full replacement of one string key. extra: additional keys to add as-is.",
+  "spacing": true,
+  "separator": " ",
   "phrases": {
     "感圧版": "かんあつばん",
     "感圧板": "かんあつばん",
@@ -11,6 +13,7 @@
     "剝いだ": "はいだ",
     "溺水": "できすい",
     "黄緑色": "きみどりいろ",
+    "新緑色": "しんりょくしょく",
     "緑色": "みどりいろ",
     "白色": "しろいろ",
     "黒色": "くろいろ",
