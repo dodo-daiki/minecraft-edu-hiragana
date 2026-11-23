@@ -112,20 +112,26 @@ kuromoji.builder({ dicPath: path.join(__dirname, "node_modules", "kuromoji", "di
         return true;
     }
 
-    function convertText(text, key, spacing) {
+    function convertText(text, key, spacing, sep = SEP) {
         if (!text) return text;
         const toks = analyze(text, key);
         let out = "";
         toks.forEach((t, i) => {
-            if (spacing && boundary(toks[i - 1], t)) out += SEP;
+            if (spacing && boundary(toks[i - 1], t)) out += sep;
             out += readingOf(t, key);
         });
         return out;
     }
 
+    // Labels without parameters are mostly dropdown items (enum members). Blockly moves a word
+    // that every dropdown item shares (split on " ") out of the dropdown, e.g. "... ほうこう)",
+    // so these get a no-break space, which Blockly does not split on and which looks the same.
+    const isPlainLabel = (key, value) => /\|block$/.test(key) && !/[%$]/.test(value);
+
     function convert(value, key) {
+        const sep = isPlainLabel(key, value) ? " " : SEP;
         return value.split(PROTECTED).map((part, i) => {
-            if (i % 2 === 0) return convertText(part, key, SPACING);
+            if (i % 2 === 0) return convertText(part, key, SPACING, sep);
             // protected markup: only convert a default variable name, e.g. %list(配列)
             return part.replace(/\(([^)]*)\)$/, (_, name) => `(${convertText(name, key, false)})`);
         }).join("");
