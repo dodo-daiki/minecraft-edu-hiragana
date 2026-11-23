@@ -20,6 +20,7 @@ const PACKAGES = ["core", "builder", "shapes", "events", "nether"];
 
 const KANJI = /[々㐀-䶿一-鿿豈-﫿]/;
 const SPACE = /^[\s　]+$/;
+const PUNCT = /^[\p{P}\p{S}]+$/u;
 // Parts of a block string that MakeCode parses and must never change:
 // %param, %param=shadowBlockId, %param(defaultVarName), $param, and the "|" separators.
 // The default variable name inside (...) is converted to hiragana but never spaced.
@@ -97,6 +98,7 @@ kuromoji.builder({ dicPath: path.join(__dirname, "node_modules", "kuromoji", "di
         if (!prev) return false;
         if (SPACE.test(prev.surface) || SPACE.test(cur.surface)) return false;
         if (prev.lastPos === "記号" || cur.pos === "記号") return false;
+        if (PUNCT.test(prev.surface) || PUNCT.test(cur.surface)) return false; // ":" etc. are not always tagged 記号
         if (prev.lastPos === "接頭詞") return false;
         if (cur.pos === "助詞" || cur.pos === "助動詞") return false;
         if (cur.detail === "非自立" || cur.detail === "接尾") return false;

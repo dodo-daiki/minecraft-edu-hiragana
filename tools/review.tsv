@@ -348,7 +348,7 @@ kanji	reading	count	example_key
 金塊	きんかい	1	Item.GoldNugget|block
 金鉱	きんこう	1	Block.GoldOre|block
 区切り	くぎり	1	String.split|param|separator|label
-空	そら	1	String.isEmpty|block
+空	から	1	String.isEmpty|block
 空っぽ	からっぽ	1	Item.EmptyMap|block
 空腹	くうふく	1	Effect.Hunger|block
 軽	けい	1	Block.WeightedPressurePlateLight|block

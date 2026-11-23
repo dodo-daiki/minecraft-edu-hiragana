@@ -492,8 +492,8 @@
   "Block.WarpedStairs|block": "ゆがんだ かいだん",
   "Block.Water|block": "みず",
   "Block.WeatheredCopper|block": "さびた どう",
-  "Block.WeightedPressurePlateHeavy|block": "かんあつばん ( じゅう)",
-  "Block.WeightedPressurePlateLight|block": "かんあつばん ( けい)",
+  "Block.WeightedPressurePlateHeavy|block": "かんあつばん (じゅう)",
+  "Block.WeightedPressurePlateLight|block": "かんあつばん (けい)",
   "Block.WetSponge|block": "ぬれた スポンジ",
   "Block.WhiteCarpet|block": "しろいろの カーペット",
   "Block.WhiteConcretePowder|block": "しろいろの コンクリートパウダー",
@@ -863,7 +863,7 @@
   "String.indexOf|block": "%this=text|のなかの %searchValue|の いち",
   "String.indexOf|param|searchValue|label": "みつける テキスト",
   "String.indexOf|param|this|label": "あたい",
-  "String.isEmpty|block": "%this=text|が そら",
+  "String.isEmpty|block": "%this=text|が から",
   "String.isEmpty|param|this|label": "あたい",
   "String.length|block": "%VALUE|の ながさ",
   "String.split|block": "%this=text|を %separator|で ぶんかつ",
@@ -975,7 +975,7 @@
   "builder.position|block": "ビルダー: いち",
   "builder.pushState|block": "ビルダー: ざひょうと いどうの じょうたいを プッシュ",
   "builder.raiseWall|block": "ビルダー: ブロック %block=minecraftBlock| を つかって しるしを つけた いちから たかさ %height| の かべを たてる",
-  "builder.saveStructure|block": "ビルダー: $nameという なまえの こうぞうぶつとして ほぞんする||エンティティを ふくむ : $includeEntities|くうきを ないものとして あつかう : $replaceAirWithVoid|",
+  "builder.saveStructure|block": "ビルダー: $nameという なまえの こうぞうぶつとして ほぞんする||エンティティを ふくむ: $includeEntities|くうきを ないものとして あつかう: $replaceAirWithVoid|",
   "builder.setOrigin|block": "ビルダー: げんてんを せってい",
   "builder.shift|block": "ビルダー: ぜんぽう %forward| うえ %up| ひだり %left| に いどうさせる",
   "builder.startStructure|block": "ビルダー: こうぞうぶつの けんちくを かいし",
@@ -1092,5 +1092,8 @@
   "{id:group}Modify": "へんこうする",
   "{id:group}Operations": "そうさ",
   "{id:group}Read": "よみだす",
-  "{id:group}Structures": "こうぞうぶつ"
+  "{id:group}Structures": "こうぞうぶつ",
+  "{id:group}条件": "じょうけん",
+  "{id:group}論理値": "ろんりち",
+  "{id:group}Create": "つくる"
 }

@@ -1,7 +1,7 @@
 {
     "name": "minecraft-edu-hiragana",
     "displayName": "ひらがなブロック",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "description": "MakeCode for Minecraft のブロックの漢字をひらがなで表示します（ブロックの動作は変わりません）",
     "license": "MIT",
     "dependencies": {
@@ -9,10 +9,21 @@
     },
     "files": [
         "main.ts",
+        "keisan.ts",
         "README.md",
         "_locales/ja/minecraft-edu-hiragana-strings.json"
     ],
     "testFiles": [],
+    "toolboxFilter": {
+        "namespaces": {},
+        "blocks": {
+            "math_modulo": "hidden",
+            "math_op2": "hidden",
+            "math_op3": "hidden",
+            "math_js_op": "hidden",
+            "math_js_round": "hidden"
+        }
+    },
     "supportedTargets": [
         "minecraft"
     ],

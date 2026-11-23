@@ -25,15 +25,37 @@ MakeCode for Minecraft のブロックに表示される漢字を、ひらがな
 
 拡張機能はプロジェクトごとに追加します。この拡張機能を入れたプロジェクトを配布して、それを使ってもらうと便利です。
 
+## 「計算」カテゴリの ひらがなブロック
+
+MakeCode のエディター本体が持っている計算ブロックは、文字を書き換えられません。
+そこで、次のブロックはツールボックスから隠し、同じ動きをする ひらがなのブロックに置き換えています。
+
+| もとのブロック | おきかえた ブロック |
+|---|---|
+| ○ ÷ ○ の余り | ○ ÷ ○ の あまり |
+| ○ と ○ のうち 小さい方 / 大きい方 | ○ と ○ の うち ちいさい ほう / おおきい ほう |
+| ○ の絶対値 | ○ の ぜったいち |
+| 平方根 ▼ ○ | へいほうこん ▼ ○（sin、cos、tan、asin、acos も えらべます） |
+| 小数点以下四捨五入 ▼ ○ | ししゃごにゅう ▼ ○（きりあげ、きりすて、しょうすうてん いかを きりすて も えらべます） |
+
+- 動きは同じですが、JavaScript では `hiragana.mod(7, 3)` のように、この拡張機能の関数を呼び出すコードになります。
+- このブロックを使ったプロジェクトを開くには、この拡張機能が必要です。
+- すでにプロジェクトに置いてある もとのブロックは、そのまま（漢字のまま）残ります。
+
 ## 注意
 
 - エディターの言語が日本語のときだけ効果があります。
-- 「もし」「くりかえし」「変数」など、MakeCode のエディター本体が持っているブロックの文字は変わりません。
+- 次の文字は、MakeCode のエディター本体が持っているため変わりません。
+  - カテゴリ名: 基本、論理、変数、計算、関数、配列、文字列、拡張機能、高度なブロック
+  - 「最初だけ」「くりかえし ○ 回」「変数 ○ を ○ にする」「関数を作成する」など、エディター本体のブロック
+  - 論理の「真」「偽」
 - MakeCode の公式機能として説明されている使い方ではありません（拡張機能の翻訳ファイルで、標準のブロックの翻訳を上書きしています）。MakeCode が更新されると効果がなくなる可能性があります。
 
 ## しくみ（開発者向け）
 
 - `_locales/ja/minecraft-edu-hiragana-strings.json` に、標準ブロックの翻訳キー（例: `player.say|block`）とひらがなの文字列を入れています。
+- エディター本体のカテゴリ内の見出し（「条件」「論理値」など）は、`{id:group}条件` のようなキーで書き換えています（`tools/overrides.json` の `extra`）。
+- 計算ブロックの置き換えは `keisan.ts` と、`pxt.json` の `toolboxFilter`（もとのブロックを隠す設定）で行っています。
 - 元の文字列は MakeCode 公式の日本語翻訳（`minecraft/core-strings.json` など）です。
 - `tools/convert.js` が形態素解析（kuromoji）で漢字を読みに変換します。`%message` や `|` などのブロック記法は変更しないように保護し、変換後に元と一致するか検査しています。
 - 形態素解析の結果から文節の区切りを判断し、スペースを入れます（`いどう` + `させる` のような「名詞 + する」は 1 つの文節として扱います）。
@@ -43,6 +65,7 @@ MakeCode for Minecraft のブロックに表示される漢字を、ひらがな
   - `phrases`: ひとまとまりで読む語句（例: `感圧板` → `かんあつばん`）
   - `words`: 1 語の読み（例: `値` → `あたい`）
   - `keys`: 文字列キー単位での置き換え
+  - `extra`: そのまま追加するキー（エディター本体のグループ見出しなど）
 - `tools/review.tsv` に、使われたすべての漢字語と読みの一覧が出力されます。
 - `tools/preview.tsv` に、変換前と変換後の文字列が出力されます（校正用。リポジトリには含めません）。
 
@@ -68,6 +91,6 @@ Only the displayed text changes; the blocks and the programs behave the same.
 - It works only when the editor language is Japanese.
 - To use it, open **Extensions** in the toolbox and paste the repository URL `https://github.com/dodo-daiki/minecraft-edu-hiragana` into the search box.
 - It overrides the official Japanese translations of the standard blocks through the extension's `_locales/ja` file. MakeCode does not document this as a supported feature, so it may stop working after a MakeCode update.
-- Built-in editor blocks such as "if", "repeat" and "variables" are not changed.
+- Built-in editor categories and blocks such as "if", "repeat" and "variables" can't be changed this way. The math blocks are the exception. The extension hides the built-in modulo, min/max, absolute value, square root and rounding blocks (`toolboxFilter` in `pxt.json`), and adds hiragana blocks that behave the same (`keisan.ts`). Programs that use them call `hiragana.*` functions, so they need this extension.
 
 Licensed under the [MIT License](LICENSE).
