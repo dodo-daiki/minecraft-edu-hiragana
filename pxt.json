@@ -3,6 +3,7 @@
     "displayName": "ひらがなブロック",
     "version": "0.2.0",
     "description": "MakeCode for Minecraft のブロックの漢字をひらがなで表示します（ブロックの動作は変わりません）",
+    "license": "MIT",
     "dependencies": {
         "core": "*"
     },
