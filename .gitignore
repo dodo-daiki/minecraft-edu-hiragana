@@ -3,3 +3,4 @@ built/
 pxt_modules/
 .DS_Store
 preview.tsv
+result/
